@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>命理分析系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overscroll-behavior: none;
+        }
+        
+        .safe-area-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .tab-active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .birth-card {
+            transition: all 0.3s;
+        }
+        
+        .birth-card:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+        
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            z-index: 3000;
+            display: none;
+            animation: slideDown 0.3s;
+        }
+        
+        .toast.active {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); }
+            to { transform: translate(-50%, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Toast提示 -->
+    <div id="toast" class="toast"></div>
+    
+    <!-- Loading -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- 顶部导航 -->
+    <header class="gradient-bg text-white safe-area-top sticky top-0 z-50">
+        <div class="px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-bold">命理分析</h1>
+                <div id="userInfo" class="flex items-center space-x-2">
+                    <img id="userAvatar" src="" alt="头像" class="w-10 h-10 rounded-full border-2 border-white hidden">
+                    <span id="userName" class="text-sm"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 主内容区 -->
+    <main class="pb-20">
+        <!-- 欢迎区域 -->
+        <section id="welcomeSection" class="px-4 py-6">
+            <div class="bg-white rounded-2xl p-6 card-shadow text-center">
+                <div class="text-6xl mb-4">🔮</div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">欢迎使用命理分析系统</h2>
+                <p class="text-gray-600 mb-6">探索命运奥秘，洞察人生轨迹</p>
+                <button onclick="mockLogin()" class="btn-primary text-white px-8 py-3 rounded-full font-medium">
+                    开始使用
+                </button>
+            </div>
+        </section>
+        
+        <!-- 出生信息列表 -->
+        <section id="birthListSection" class="px-4 py-6 hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-800">我的出生信息</h2>
+                <button onclick="showAddBirthModal()" class="btn-primary text-white px-4 py-2 rounded-full text-sm font-medium">
+                    + 添加
+                </button>
+            </div>
+            <div id="birthList" class="space-y-3">
+                <!-- 出生信息卡片将动态插入这里 -->
+            </div>
+            <div id="emptyBirth" class="text-center py-12 hidden">
+                <div class="text-6xl mb-4">📝</div>
+                <p class="text-gray-500 mb-4">还没有出生信息</p>
+                <button onclick="showAddBirthModal()" class="btn-primary text-white px-6 py-2 rounded-full text-sm font-medium">
+                    添加第一条
+                </button>
+            </div>
+        </section>
+        
+        <!-- 分析结果区域 -->
+        <section id="analysisSection" class="px-4 py-6 hidden">
+            <button onclick="backToBirthList()" class="flex items-center text-purple-600 mb-4">
+                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                返回
+            </button>
+            
+            <div class="bg-white rounded-2xl p-6 card-shadow mb-4">
+                <h3 id="analysisTitle" class="text-lg font-bold text-gray-800 mb-2"></h3>
+                <p id="analysisSubtitle" class="text-sm text-gray-600"></p>
+            </div>
+            
+            <!-- 分析类型选择 -->
+            <div class="flex space-x-2 mb-4 overflow-x-auto">
+                <button onclick="selectAnalysisType('bazi')" class="analysis-tab px-6 py-2 rounded-full whitespace-nowrap font-medium" data-type="bazi">
+                    八字命理
+                </button>
+                <button onclick="selectAnalysisType('ziwei')" class="analysis-tab px-6 py-2 rounded-full whitespace-nowrap font-medium" data-type="ziwei">
+                    紫微斗数
+                </button>
+                <button onclick="selectAnalysisType('astrology')" class="analysis-tab px-6 py-2 rounded-full whitespace-nowrap font-medium" data-type="astrology">
+                    星盘分析
+                </button>
+            </div>
+            
+            <!-- 分析结果内容 -->
+            <div id="analysisResult" class="space-y-4">
+                <!-- 分析结果将动态插入这里 -->
+            </div>
+        </section>
+    </main>
+    
+    <!-- 底部导航 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-bottom z-40">
+        <div class="flex justify-around py-2">
+            <button onclick="showTab('home')" class="nav-tab flex flex-col items-center py-2 px-3 text-purple-600" data-tab="home">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span class="text-xs">首页</span>
+            </button>
+            <button onclick="showTab('bazi')" class="nav-tab flex flex-col items-center py-2 px-3 text-gray-600" data-tab="bazi">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <span class="text-xs">八字</span>
+            </button>
+            <button onclick="showTab('ziwei')" class="nav-tab flex flex-col items-center py-2 px-3 text-gray-600" data-tab="ziwei">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                </svg>
+                <span class="text-xs">紫微</span>
+            </button>
+            <button onclick="showTab('astrology')" class="nav-tab flex flex-col items-center py-2 px-3 text-gray-600" data-tab="astrology">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-xs">星盘</span>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- 添加/编辑出生信息弹窗 -->
+    <div id="birthModal" class="modal">
+        <div class="modal-content w-full mx-4">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-800" id="birthModalTitle">添加出生信息</h3>
+                    <button onclick="closeBirthModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <form id="birthForm" class="space-y-4">
+                    <input type="hidden" id="birthId" value="">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">昵称</label>
+                        <input type="text" id="birthNickname" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="例如：我的信息">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">性别</label>
+                        <div class="flex space-x-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="gender" value="male" required class="mr-2">
+                                <span>男</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="gender" value="female" required class="mr-2">
+                                <span>女</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">出生日期</label>
+                        <input type="date" id="birthDate" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">出生时间</label>
+                        <input type="time" id="birthTime" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">出生地点</label>
+                        <input type="text" id="birthPlace" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="例如：北京市">
+                    </div>
+                    
+                    <div class="flex space-x-3 pt-4">
+                        <button type="button" onclick="closeBirthModal()" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium">
+                            取消
+                        </button>
+                        <button type="submit" class="flex-1 btn-primary text-white px-4 py-3 rounded-lg font-medium">
+                            保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="js/main.js"></script>
+    
+    <!-- 页脚签名 -->
+    <footer class="text-center py-4 text-sm text-gray-500">
+        <p>由 <a href="https://with.woa.com/" style="color: #8A2BE2;" target="_blank">with</a> 通过自然语言生成</p>
+    </footer>
+</body>
+</html>

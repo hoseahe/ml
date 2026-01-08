@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: mingli-analysis-app
+    ports:
+      - "8000:8000"
+    environment:
+      # MySQL数据库配置
+      - MYSQL_HOST=11.142.154.110
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=1akmr4xp
+      - MYSQL_USER=with_rjnreclbvckkitot
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      # 应用配置
+      - APP_ENV=production
+    restart: unless-stopped
+    volumes:
+      - ./static:/app/static
+    networks:
+      - mingli-network
+
+networks:
+  mingli-network:
+    driver: bridge
